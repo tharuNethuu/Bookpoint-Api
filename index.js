@@ -177,6 +177,25 @@ async function run() {
       }
     });
 
+    app.get('/ordersdelivery', async (req, res) => {
+  try {
+    const { status, province, assignedPerson } = req.query;
+    const query = {};
+    if (status) query.status = status;
+    if (province) query.province = province; // Replace hyphens with spaces
+    if (assignedPerson) query.assignedPerson = assignedPerson;
+
+    const ordersCollection = client.db("BookInventontary").collection("orders");
+    const orders = await ordersCollection.find(query).toArray();
+    res.status(200).json(orders);
+  } catch (error) {
+    console.error('Error fetching orders:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+ 
+
+
     // Books
     app.post("/upload-book", async (req, res) => {
       const data = req.body;
