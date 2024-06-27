@@ -1,36 +1,21 @@
 const express = require('express');
 const app = express();
-const port = process.env.PORT || 5000
+const port = process.env.PORT || 5000;
 const bodyParser = require('body-parser');
+const cors = require('cors');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
-const cors = require('cors')
+// Middleware
 app.use(bodyParser.json());
-
-
-
-
-//middleware
 app.use(cors({
-  origin: ['https://bookpoint-client.vercel.app'],
+  origin: ['http://localhost:5173'],
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
 
-//PXT8vWiAXOIcvLVD
-
-app.get('/', (req, res) => {
-  res.send('Hello World!')
-})
-
-//mongodb configuration
-
-
-
-const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+// MongoDB configuration
 const uri = "mongodb+srv://mern-book-store:W5WKP1xB1kpD8t9H@cluster0.ur1zclj.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
-
-// Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -39,346 +24,235 @@ const client = new MongoClient(uri, {
   }
 });
 
-//notifications
-app.use(express.json());
-
-
-client.connect()
-  .then(() => {
-    db = client.db('BookInventontary'); // Ensure this matches your database name
-    console.log('Connected to MongoDB');
-  })
-  .catch(err => {
-    console.error('Failed to connect to MongoDB', err);
-  });
-
-  const notificationsCollection = client.db("BookInventontary").collection("notifications");
-
-  app.get('/notifications/:email', async (req, res) => {
-    try {
-      const { email } = req.params;
-      const notifications = await notificationsCollection.find({ email }).toArray();
-      res.status(200).json(notifications);
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-      res.status(500).json({ success: false, error: 'Failed to fetch notifications' });
-    }
-  });
-
-
-
-app.post('/notifications/:email', async (req, res) => {
-  const email = req.params.email;
-  const { message } = req.body;
-  console.log(`Received message: ${message} for email: ${email}`);
-
-  if (!message) {
-    console.log('Message content is required');
-    return res.status(400).json({ error: 'Message content is required' });
-  }
-
-  const newNotification = {
-    email,
-    message,
-    timestamp: new Date(),
-  };
-
-  try {
-    const result = await db.collection('notifications').insertOne(newNotification);
-    const insertedNotification = await db.collection('notifications').findOne({ _id: result.insertedId });
-    console.log('Notification inserted:', insertedNotification);
-    res.json(insertedNotification);
-  } catch (error) {
-    console.error('Error sending notification:', error);
-    res.status(500).json({ error: 'Failed to send notification' });
-  }
-});
-
-app.get('/notifications/:email', async (req, res) => {
-  const notificationsCollection = client.db("BookInventontary").collection("notifications");
-
-  try {
-    const { email } = req.params;
-
-    if (!email) {
-      return res.status(400).json({ success: false, error: 'Email is required' });
-    }
-
-    const notifications = await notificationsCollection.find({ email }).sort({ timestamp: -1 }).toArray();
-
-    res.status(200).json({ success: true, notifications });
-  } catch (error) {
-    console.error('Error fetching notifications:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch notifications' });
-  }
-});
-
-app.delete('/notifications/:email/:messageId', async (req, res) => {
-  const notificationsCollection = client.db("BookInventontary").collection("notifications");
-
-  try {
-    const { email, messageId } = req.params;
-
-    // Validate email and messageId to prevent injection attacks
-    if (!email || !messageId) {
-      return res.status(400).json({ success: false, error: 'Email and messageId are required' });
-    }
-
-    // Convert messageId to ObjectId if necessary
-    const messageObjectId = new ObjectId(messageId);
-
-    // Delete the message
-    const result = await notificationsCollection.deleteOne({ email: email, _id: messageObjectId });
-
-    if (result.deletedCount === 1) {
-      res.status(200).json({ success: true, message: 'Message deleted successfully' });
-    } else {
-      res.status(404).json({ success: false, error: 'Message not found' });
-    }
-  } catch (error) {
-    // Return an error response if something goes wrong
-    console.error('Error deleting message:', error);
-    res.status(500).json({ success: false, error: 'Failed to delete message' });
-  }
-});
-
-
-//orders
-app.post('/orders', (req, res) => {
-  const order = req.body;
-  const ordersCollection = client.db("BookInventontary").collection("orders");
-
-  ordersCollection.insertOne(order)
-    .then(result => {
-      res.status(200).json({ message: 'Order placed successfully', result });
-    })
-    .catch(error => {
-      console.error(error);
-      res.status(500).json({ message: 'Failed to place order', error });
-    });
-});
-
-//get all orders
-app.get('/orders', async (req, res) => {
-  try {
-   const { status, province } = req.query;
-    const query = {};
-    if (status) query.status = status;
-
-    const ordersCollection = client.db("BookInventontary").collection("orders");
-    const orders = await ordersCollection.find(query).toArray();
-    res.json(orders);
-  } catch (error) {
-    console.error('Error fetching orders:', error); // Logging error
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.get('/ordersdelivery', async (req, res) => {
-  try {
-    const { status, province, assignedPerson } = req.query;
-    const query = {};
-    if (status) query.status = status;
-    if (province) query.province = province; // Replace hyphens with spaces
-    if (assignedPerson) query.assignedPerson = assignedPerson;
-
-    const ordersCollection = client.db("BookInventontary").collection("orders");
-    const orders = await ordersCollection.find(query).toArray();
-    res.status(200).json(orders);
-  } catch (error) {
-    console.error('Error fetching orders:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
- 
-
-
-
-// DELETE route for deleting an order by ID
-app.delete('/orders/:id', (req, res) => {
-  const ordersCollection = client.db("BookInventontary").collection("orders");
-
-  const { id } = req.params;
-  ordersCollection.deleteOne({ _id: new ObjectId(id) })
-    .then(result => {
-      if (result.deletedCount === 1) {
-        res.status(200).json({ message: 'Order deleted successfully' });
-      } else {
-        res.status(404).json({ message: 'Order not found' });
-      }
-    })
-    .catch(error => {
-      console.error(error);
-      res.status(500).json({ message: 'Failed to delete order', error });
-    });
-});
-
-
-// Route to update order status by ID
-app.put('/orders/:id', (req, res) => {
-  const ordersCollection = client.db("BookInventontary").collection("orders");
-
-  const { id } = req.params;
-  const { status } = req.body;
-
-  ordersCollection.updateOne({ _id: new ObjectId(id) }, { $set: { status } })
-    .then(result => {
-      if (result.matchedCount === 1) {
-        res.status(200).json({ message: 'Order updated successfully' });
-      } else {
-        res.status(404).json({ message: 'Order not found' });
-      }
-    })
-    .catch(error => {
-      console.error(error);
-      res.status(500).json({ message: 'Failed to update order', error });
-    });
-});
-
-//assigning a person
-app.put('/orders/:orderId/assign', async (req, res) => {
-  try {
-    const { orderId } = req.params;
-    const { assignedPerson } = req.body;
-
-    const ordersCollection = client.db("BookInventontary").collection("orders");
-    await ordersCollection.updateOne(
-      { _id: new ObjectId(orderId) },
-      { $set: { assignedPerson } }
-    );
-
-    res.status(200).json({ message: 'Assigned person updated successfully' });
-  } catch (error) {
-    console.error('Error updating assigned person:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-//delivery status
-app.put('/ordersdelivery/:id', async (req, res) => {
-  try {
-      const { id } = req.params;
-      const { delivered } = req.body;
-
-      if (!ObjectId.isValid(id)) {
-          return res.status(400).json({ error: 'Invalid order ID format' });
-      }
-
-      const objectId = new ObjectId(id);
-      const result = await db.collection("orders").updateOne(
-          { _id: objectId },
-          { $set: { delivered: delivered ? 'Yes' : 'No' } }
-      );
-
-      if (result.modifiedCount === 1) {
-          res.status(200).json({ message: 'Order delivery status updated successfully' });
-      } else {
-          res.status(404).json({ message: 'Order not found' });
-      }
-  } catch (error) {
-      console.error('Error updating delivery status:', error);
-      res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
-
-
-
+// Connect to MongoDB and define collections
 async function run() {
   try {
-    // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
+    const db = client.db('BookInventontary');
+    const notificationsCollection = db.collection("notifications");
+    const ordersCollection = db.collection("orders");
+    const bookCollection = db.collection("books");
 
+    console.log('Connected to MongoDB');
 
-// Notifications collection operations
-const notificationsCollection = client.db("BookInventontary").collection("notifications");
+    // Routes
+    app.get('/', (req, res) => {
+      res.send('Hello World!');
+    });
 
+    // Notifications
+    app.get('/notifications/:email', async (req, res) => {
+      try {
+        const { email } = req.params;
+        const notifications = await notificationsCollection.find({ email }).toArray();
+        res.status(200).json(notifications);
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+        res.status(500).json({ success: false, error: 'Failed to fetch notifications' });
+      }
+    });
 
+    app.post('/notifications/:email', async (req, res) => {
+      const { email } = req.params;
+      const { message } = req.body;
+      if (!message) {
+        return res.status(400).json({ error: 'Message content is required' });
+      }
+      const newNotification = {
+        email,
+        message,
+        timestamp: new Date(),
+      };
+      try {
+        const result = await notificationsCollection.insertOne(newNotification);
+        const insertedNotification = await notificationsCollection.findOne({ _id: result.insertedId });
+        res.json(insertedNotification);
+      } catch (error) {
+        console.error('Error sending notification:', error);
+        res.status(500).json({ error: 'Failed to send notification' });
+      }
+    });
 
-
-//create a collection of documents
-const bookCollection = client.db("BookInventontary").collection("books");
-
-
-
-
-//insert a book to the db: post method
-app.post("/upload-book", async(req, res) => {
-    const data = req.body;
-    const result = await bookCollection.insertOne(data);
-    res.send(result);
-})
-
-
-// get all books from the database
- app.get("/all-books",async(req, res) =>{
- const books = bookCollection.find();
- const result = await books.toArray();
- res.send(result);
-})  
-
-//update a book data : patch or update methods
-app.patch("/book/:id",async(req, res) =>{
-    const id = req.params.id;
-    //console.log(id);
-    const updateBookData = req.body;
-    const filter = {_id: new ObjectId(id)};
-    const options = { upsert: true };
-
-    const updateDoc = {
-        $set: {
-            ...updateBookData
+    app.delete('/notifications/:email/:messageId', async (req, res) => {
+      try {
+        const { email, messageId } = req.params;
+        const messageObjectId = new ObjectId(messageId);
+        const result = await notificationsCollection.deleteOne({ email: email, _id: messageObjectId });
+        if (result.deletedCount === 1) {
+          res.status(200).json({ success: true, message: 'Message deleted successfully' });
+        } else {
+          res.status(404).json({ success: false, error: 'Message not found' });
         }
-    }
+      } catch (error) {
+        console.error('Error deleting message:', error);
+        res.status(500).json({ success: false, error: 'Failed to delete message' });
+      }
+    });
 
-    //update
-    const result = await bookCollection.updateOne(filter, updateDoc, options);
-    res.send(result);
-})
+    // Orders
+    app.post('/orders', async (req, res) => {
+      const order = req.body;
+      try {
+        const result = await ordersCollection.insertOne(order);
+        res.status(200).json({ message: 'Order placed successfully', result });
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Failed to place order', error });
+      }
+    });
 
+    app.get('/orders', async (req, res) => {
+      try {
+        const { status, province } = req.query;
+        const query = {};
+        if (status) query.status = status;
+        const orders = await ordersCollection.find(query).toArray();
+        res.json(orders);
+      } catch (error) {
+        console.error('Error fetching orders:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
 
-//delete a book data
-app.delete("/book/:id",async(req, res) =>{
-    const id = req.params.id;
-    const filter = {_id: new ObjectId(id)};
-    const result = await bookCollection.deleteOne(filter);
-    res.send(result);
+    app.delete('/orders/:id', async (req, res) => {
+      try {
+        const { id } = req.params;
+        const result = await ordersCollection.deleteOne({ _id: new ObjectId(id) });
+        if (result.deletedCount === 1) {
+          res.status(200).json({ message: 'Order deleted successfully' });
+        } else {
+          res.status(404).json({ message: 'Order not found' });
+        }
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Failed to delete order', error });
+      }
+    });
 
-})
+    app.put('/orders/:id', async (req, res) => {
+      try {
+        const { id } = req.params;
+        const { status } = req.body;
+        const result = await ordersCollection.updateOne({ _id: new ObjectId(id) }, { $set: { status } });
+        if (result.matchedCount === 1) {
+          res.status(200).json({ message: 'Order updated successfully' });
+        } else {
+          res.status(404).json({ message: 'Order not found' });
+        }
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Failed to update order', error });
+      }
+    });
 
+    app.put('/orders/:orderId/assign', async (req, res) => {
+      try {
+        const { orderId } = req.params;
+        const { assignedPerson } = req.body;
+        await ordersCollection.updateOne({ _id: new ObjectId(orderId) }, { $set: { assignedPerson } });
+        res.status(200).json({ message: 'Assigned person updated successfully' });
+      } catch (error) {
+        console.error('Error updating assigned person:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
 
-//find by category
+    app.put('/ordersdelivery/:id', async (req, res) => {
+      try {
+        const { id } = req.params;
+        const { delivered } = req.body;
+        if (!ObjectId.isValid(id)) {
+          return res.status(400).json({ error: 'Invalid order ID format' });
+        }
+        const objectId = new ObjectId(id);
+        const result = await ordersCollection.updateOne({ _id: objectId }, { $set: { delivered: delivered ? 'Yes' : 'No' } });
+        if (result.modifiedCount === 1) {
+          res.status(200).json({ message: 'Order delivery status updated successfully' });
+        } else {
+          res.status(404).json({ message: 'Order not found' });
+        }
+      } catch (error) {
+        console.error('Error updating delivery status:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+      }
+    });
 
-app.get("/all-books",async(req, res) =>{
-    let query = {};
-    if(req.query?.category){
-        query = {category: req.query.category}
-    }
-    const result= await bookCollection.find(query).toArray();
-    res.send(result);
-})
+    // Books
+    app.post("/upload-book", async (req, res) => {
+      const data = req.body;
+      try {
+        const result = await bookCollection.insertOne(data);
+        res.send(result);
+      } catch (error) {
+        res.status(500).json({ error: 'Failed to upload book' });
+      }
+    });
 
-//get single book
-app.get("/books/:id",async(req, res) =>{
-  const id = req.params.id;
- const filter = {_id: new ObjectId(id)};
- const result = await bookCollection.findOne(filter);
- res.send(result);
+    app.get("/all-books", async (req, res) => {
+      try {
+        const books = await bookCollection.find().toArray();
+        res.send(books);
+      } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch books' });
+      }
+    });
 
-})
- 
- 
-    // Send a ping to confirm a successful connection
+    app.patch("/book/:id", async (req, res) => {
+      const id = req.params.id;
+      const updateBookData = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const options = { upsert: true };
+      const updateDoc = { $set: { ...updateBookData } };
+      try {
+        const result = await bookCollection.updateOne(filter, updateDoc, options);
+        res.send(result);
+      } catch (error) {
+        res.status(500).json({ error: 'Failed to update book' });
+      }
+    });
+
+    app.delete("/book/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      try {
+        const result = await bookCollection.deleteOne(filter);
+        res.send(result);
+      } catch (error) {
+        res.status(500).json({ error: 'Failed to delete book' });
+      }
+    });
+
+    app.get("/books/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      try {
+        const result = await bookCollection.findOne(filter);
+        res.send(result);
+      } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch book' });
+      }
+    });
+
+    app.get("/books", async (req, res) => {
+      const query = req.query.category ? { category: req.query.category } : {};
+      try {
+        const result = await bookCollection.find(query).toArray();
+        res.send(result);
+      } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch books' });
+      }
+    });
+
+    // Ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
-  } finally {
-    // Ensures that the client will close when you finish/error
-    //await client.close();
+  } catch (err) {
+    console.error('Failed to connect to MongoDB', err);
   }
 }
 run().catch(console.dir);
 
-
-
+// Start the server
 app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`)
-})
+  console.log(`Server is running on port ${port}`);
+});
