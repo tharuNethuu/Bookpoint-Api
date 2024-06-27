@@ -144,7 +144,7 @@ app.delete('/notifications/:email/:messageId', async (req, res) => {
 
 
 //orders
-app.post('/admin/dashboard/orders', (req, res) => {
+app.post('/orders', (req, res) => {
   const order = req.body;
   const ordersCollection = client.db("BookInventontary").collection("orders");
 
@@ -159,7 +159,7 @@ app.post('/admin/dashboard/orders', (req, res) => {
 });
 
 //get all orders
-app.get('/admin/dashboard/orders', async (req, res) => {
+app.get('/orders', async (req, res) => {
   try {
    const { status, province } = req.query;
     const query = {};
@@ -195,7 +195,7 @@ app.get('/ordersdelivery', async (req, res) => {
 
 
 // DELETE route for deleting an order by ID
-app.delete('/admin/dashboard/orders/:id', (req, res) => {
+app.delete('/orders/:id', (req, res) => {
   const ordersCollection = client.db("BookInventontary").collection("orders");
 
   const { id } = req.params;
@@ -215,7 +215,7 @@ app.delete('/admin/dashboard/orders/:id', (req, res) => {
 
 
 // Route to update order status by ID
-app.put('/admin/dashboard/orders/:id', (req, res) => {
+app.put('/orders/:id', (req, res) => {
   const ordersCollection = client.db("BookInventontary").collection("orders");
 
   const { id } = req.params;
@@ -236,7 +236,7 @@ app.put('/admin/dashboard/orders/:id', (req, res) => {
 });
 
 //assigning a person
-app.put('/admin/dashboard/orders/:orderId/assign', async (req, res) => {
+app.put('/orders/:orderId/assign', async (req, res) => {
   try {
     const { orderId } = req.params;
     const { assignedPerson } = req.body;
@@ -255,7 +255,7 @@ app.put('/admin/dashboard/orders/:orderId/assign', async (req, res) => {
 });
 
 //delivery status
-app.put('/admin/dashboard/ordersdelivery/:id', async (req, res) => {
+app.put('/ordersdelivery/:id', async (req, res) => {
   try {
       const { id } = req.params;
       const { delivered } = req.body;
