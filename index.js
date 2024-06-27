@@ -8,7 +8,7 @@ const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 // Middleware
 app.use(bodyParser.json());
 app.use(cors({
-  origin: ['http://localhost:5173'],
+  origin: ['https://bookpoint-client.vercel.app'],
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
