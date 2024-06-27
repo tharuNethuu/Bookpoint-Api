@@ -6,6 +6,8 @@
   "scripts": {
     "start": "node index.js" 
         "build": "react-scripts build"
+        "vercel-build": "react-scripts build"
+
 
   },
   "author": "",
